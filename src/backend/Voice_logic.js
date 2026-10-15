@@ -6,7 +6,7 @@ import { auth } from '../firebaseConfig';
 // Configuración OpenRouter (Meta Llama 3)
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct';
-const OPENROUTER_KEY = import.meta.env.VITE_OPENROUTER_KEY;
+// const OPENROUTER_KEY = import.meta.env.VITE_OPENROUTER_KEY;
 
 const SYSTEM_INSTRUCTION =
     'Eres A.I.S.E., tu nombre significa Asistente Inteligente de Soporte Emocional. ' +
@@ -34,7 +34,7 @@ const callLlama = async (messages, temperature = 0.5) => {
     const response = await fetch(OPENROUTER_API_URL, {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${OPENROUTER_KEY}`,
+            'Authorization': `Bearer ${import.meta.env.VITE_OPENROUTER_KEY}`,
             'Content-Type': 'application/json',
             // 'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'https://mindly.app',
             // 'X-Title': 'Mindly AISE'
