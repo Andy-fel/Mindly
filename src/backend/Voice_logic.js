@@ -6,7 +6,7 @@ import { auth } from '../firebaseConfig';
 // Configuración OpenRouter (Meta Llama 3)
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct';
-const OPENROUTER_KEY = import.meta.env.VITE_OPENROUTER_KEY || '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';
+const OPENROUTER_KEY = import.meta.env.VITE_OPENROUTER_KEY;
 
 const SYSTEM_INSTRUCTION =
     'Eres A.I.S.E., tu nombre significa Asistente Inteligente de Soporte Emocional. ' +
@@ -27,6 +27,9 @@ const MOOD_CONFIGS = {
 };
 
 // Función auxiliar unificada para invocar OpenRouter con Llama 3
+console.log("Key cargada:", import.meta.env.VITE_OPENROUTER_KEY);
+console.log("Key cargada:", OPENROUTER_KEY);
+
 const callLlama = async (messages, temperature = 0.5) => {
     const response = await fetch(OPENROUTER_API_URL, {
         method: 'POST',
@@ -37,7 +40,7 @@ const callLlama = async (messages, temperature = 0.5) => {
             // 'X-Title': 'Mindly AISE'
         },
         body: JSON.stringify({
-            model: OPENROUTER_MODEL,
+            model: "meta-llama/llama-3.1-8b-instruct",
             temperature,
             messages
         })
