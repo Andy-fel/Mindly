@@ -6,7 +6,7 @@ import { auth } from '../firebaseConfig';
 // Configuración OpenRouter (Meta Llama 3)
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct';
-const OPENROUTER_KEY = import.meta.env.VITE_OPENROUTER_KEY;
+const OPENROUTER_KEY = import.meta.env.VITE_OPENROUTER_KEY || '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';
 
 const SYSTEM_INSTRUCTION =
     'Eres A.I.S.E., tu nombre significa Asistente Inteligente de Soporte Emocional. ' +
