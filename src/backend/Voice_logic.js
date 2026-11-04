@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { saveSession } from './SessionService';
 import { getUserSettings } from './SettingsService';
+import { getUserTriageMetadata } from './TriageService';
 import { auth } from '../firebaseConfig';
 
 // Configuración OpenRouter (Meta Llama 3)
@@ -66,6 +67,19 @@ export const useVoiceLogic = () => {
     const [currentTranscript, setCurrentTranscript] = useState('');
     const [transcriptionOpacity, setTranscriptionOpacity] = useState(0.6);
     const [isProcessingSummary, setIsProcessingSummary] = useState(false);
+    const [triageProfile, setTriageProfile] = useState(null);
+
+    // Cargar expediente clínico RAG desde users_metadata
+    useEffect(() => {
+        const loadTriage = async () => {
+            const user = auth.currentUser;
+            const profile = await getUserTriageMetadata(user ? (user.email || user.uid) : null);
+            if (profile) {
+                setTriageProfile(profile);
+            }
+        };
+        loadTriage();
+    }, []);
 
     // Refs
     const orbRef = useRef(null);
@@ -94,8 +108,23 @@ export const useVoiceLogic = () => {
         setTimeout(() => {
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'es-ES';
-            utterance.rate = 1.0;
-            utterance.pitch = 1.1;
+
+            let rate = 1.0;
+            let pitch = 1.1;
+            const preferredTone = triageProfile?.personalityTraits?.voiceTone;
+            if (preferredTone?.includes('Cálido') || preferredTone?.includes('pausado')) {
+                rate = 0.92;
+                pitch = 1.05;
+            } else if (preferredTone?.includes('Dinámico') || preferredTone?.includes('motivador')) {
+                rate = 1.08;
+                pitch = 1.15;
+            } else if (preferredTone?.includes('Neutral')) {
+                rate = 1.0;
+                pitch = 1.0;
+            }
+
+            utterance.rate = rate;
+            utterance.pitch = pitch;
 
             const voices = window.speechSynthesis.getVoices();
             const esVoice = voices.find(v => v.lang.startsWith('es') && (v.name.includes('Google') || v.name.includes('Online') || v.name.includes('Natural') || v.name.includes('Siri')))
