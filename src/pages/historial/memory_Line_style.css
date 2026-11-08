@@ -1,0 +1,253 @@
+/* ============================================================
+   MemoryLane.css — Mindly Design System
+   ============================================================ */
+
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
+
+/* ── Glass card ── */
+.glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(232, 165, 205, 0.2);
+}
+
+/* ── Barra del chart con hover ── */
+.chart-bar {
+    border-radius: 9999px 9999px 0 0;
+    transition: opacity 0.2s ease, filter 0.2s ease, height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+}
+
+.chart-bar:hover {
+    filter: brightness(1.15);
+}
+
+/* ── Tooltip del chart ── */
+.chart-tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1c1b1f;
+    color: #fff8f9;
+    font-size: 11px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.chart-bar-wrapper:hover .chart-tooltip {
+    opacity: 1;
+}
+
+/* ── Animación de entrada de barras ── */
+@keyframes barRise {
+    from {
+        transform: scaleY(0);
+        transform-origin: bottom;
+        opacity: 0;
+    }
+
+    to {
+        transform: scaleY(1);
+        transform-origin: bottom;
+        opacity: 1;
+    }
+}
+
+.chart-bar {
+    animation: barRise 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.chart-bar:nth-child(1) {
+    animation-delay: 0.05s;
+}
+
+.chart-bar:nth-child(2) {
+    animation-delay: 0.10s;
+}
+
+.chart-bar:nth-child(3) {
+    animation-delay: 0.15s;
+}
+
+.chart-bar:nth-child(4) {
+    animation-delay: 0.20s;
+}
+
+.chart-bar:nth-child(5) {
+    animation-delay: 0.25s;
+}
+
+.chart-bar:nth-child(6) {
+    animation-delay: 0.30s;
+}
+
+.chart-bar:nth-child(7) {
+    animation-delay: 0.35s;
+}
+
+/* ── Sesiones: animación de entrada ── */
+@keyframes sessionFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.session-item {
+    animation: sessionFadeIn 0.4s ease both;
+}
+
+.session-item:nth-child(1) {
+    animation-delay: 0.05s;
+}
+
+.session-item:nth-child(2) {
+    animation-delay: 0.12s;
+}
+
+.session-item:nth-child(3) {
+    animation-delay: 0.19s;
+}
+
+.session-item:nth-child(4) {
+    animation-delay: 0.26s;
+}
+
+.session-item:nth-child(5) {
+    animation-delay: 0.33s;
+}
+
+/* ── Tag de mood ── */
+.mood-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 14px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* ── Botón "Cargar más" ── */
+.btn-load-more {
+    border: 1px solid rgba(232, 165, 205, 0.4);
+    color: #e8a5cd;
+    border-radius: 9999px;
+    padding: 12px 32px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: background 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+}
+
+.btn-load-more:hover {
+    background: rgba(232, 165, 205, 0.07);
+    border-color: rgba(232, 165, 205, 0.7);
+}
+
+.btn-load-more:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ── Input de búsqueda ── */
+.search-input {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(232, 165, 205, 0.3);
+    border-radius: 9999px;
+    padding: 8px 16px 8px 40px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    color: #1c1b1f;
+    outline: none;
+    transition: border-color 0.2s ease, background 0.2s ease;
+    width: 220px;
+}
+
+.search-input:focus {
+    border-color: #e8a5cd;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.search-input::placeholder {
+    color: #79747e;
+}
+
+/* ── Chip de filtro ── */
+.filter-chip {
+    padding: 6px 16px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.filter-chip.active {
+    background: #e8a5cd;
+    color: #fff;
+    border-color: #e8a5cd;
+}
+
+.filter-chip.inactive {
+    background: transparent;
+    color: #79747e;
+    border-color: rgba(121, 116, 126, 0.3);
+}
+
+.filter-chip.inactive:hover {
+    border-color: #e8a5cd;
+    color: #e8a5cd;
+}
+
+/* ── Stat card shimmer al hover ── */
+.stat-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(232, 165, 205, 0.15);
+}
+
+/* ── Barra de progreso del stat de minutos ── */
+.minutes-bar-fill {
+    transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Skeleton loader ── */
+@keyframes shimmer {
+    0% {
+        background-position: -400px 0;
+    }
+
+    100% {
+        background-position: 400px 0;
+    }
+}
+
+.skeleton {
+    background: linear-gradient(90deg, #f0e5e9 25%, #fce8f0 50%, #f0e5e9 75%);
+    background-size: 400px 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 12px;
+}

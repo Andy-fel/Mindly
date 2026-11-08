@@ -1,0 +1,140 @@
+:root {
+  --aurora-mint: rgba(123, 224, 232, 0.2);
+  --aurora-pink: rgba(232, 165, 205, 0.2);
+  --orb-pink: #E8A5CD;
+  --orb-cyan: #7BE0E8;
+  --orb-gray: #7D7578;
+}
+
+.aurora-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  filter: blur(100px);
+  opacity: 0.7;
+  background: radial-gradient(circle at 20% 30%, var(--aurora-mint) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, var(--aurora-pink) 0%, transparent 50%);
+  animation: drift 15s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+
+  100% {
+    transform: scale(1.1) translate(2%, 2%);
+  }
+}
+
+/* Estilos dinámicos del Orbe */
+.orb-container {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .orb-container {
+    width: 260px;
+    height: 260px;
+  }
+}
+
+.vibrating-orb {
+  position: absolute;
+  width: 80%;
+  height: 80%;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--orb-pink), var(--orb-cyan), var(--orb-gray), var(--orb-pink));
+  filter: blur(40px);
+  opacity: 0.8;
+  animation: orb-rotate 10s linear infinite, orb-vibrate 3s ease-in-out infinite alternate;
+}
+
+.orb-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: linear-gradient(#fff8f9, #fff8f9) padding-box,
+    conic-gradient(from 0deg, var(--orb-pink), var(--orb-cyan), var(--orb-gray), var(--orb-pink)) border-box;
+  opacity: 0.6;
+  animation: orb-vibrate 4s ease-in-out infinite alternate-reverse;
+}
+
+.orb-inner {
+  position: relative;
+  z-index: 2;
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(circle at 30% 30%, white, #fdf4f7);
+  border-radius: 50%;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.05), 0 10px 40px rgba(232, 165, 205, 0.2);
+  animation: orb-vibrate 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes orb-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes orb-vibrate {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+
+  33% {
+    transform: scale(1.03) translate(-2px, 2px);
+  }
+
+  66% {
+    transform: scale(0.98) translate(2px, -1px);
+  }
+
+  100% {
+    transform: scale(1.05) translate(0, 0);
+  }
+}
+
+.glass-button {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(232, 165, 205, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-button:active {
+  transform: scale(0.95);
+}
+
+.sidebar-transition {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* Mode Transitions */
+.mode-transition {
+  transition: opacity 0.5s ease-in-out, transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Scroll del Chat */
+.chat-scroll {
+  mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+  scrollbar-width: none;
+}
+
+.chat-scroll::-webkit-scrollbar {
+  display: none;
+}
