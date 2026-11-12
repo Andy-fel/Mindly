@@ -6,7 +6,7 @@ import { getUserTriageMetadata } from './TriageService';
 import { auth, db } from '../firebaseConfig';
 
 // Valores predeterminados de contingencia para OpenRouter
-// const DEFAULT_OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const DEFAULT_OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 
 // Cache en memoria para la configuración completa de OpenRouter
