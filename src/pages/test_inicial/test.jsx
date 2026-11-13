@@ -6,7 +6,9 @@ import {
   getStoredQuestions,
   saveStoredQuestions,
   resetStoredQuestions,
-  DEFAULT_TRIAGE_QUESTIONS,
+  DEFAULT_TEST_QUESTIONS
+} from "../../backend/TestService";
+import {
   calculateTriageAnalysis,
   saveUserTriageMetadata,
   getUserTriageMetadata
@@ -28,7 +30,7 @@ export default function InitialEvaluationTest() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Preguntas dinámicas y respuestas
-  const [questions, setQuestions] = useState(DEFAULT_TRIAGE_QUESTIONS);
+  const [questions, setQuestions] = useState(DEFAULT_TEST_QUESTIONS);
   const [answers, setAnswers] = useState({});
   const [activeAxis, setActiveAxis] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
@@ -41,7 +43,7 @@ export default function InitialEvaluationTest() {
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [newQuestionForm, setNewQuestionForm] = useState({
     axisId: 1,
-    axisTitle: "Eje 1: Estilo de Comunicación Deseado",
+    axisTitle: "Eje 1: Síntomas y Estado Emocional",
     question: "",
     options: [
       { id: "A", text: "" },
@@ -56,6 +58,9 @@ export default function InitialEvaluationTest() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      // Limpiar respuestas previas al cambiar de usuario
+      setAnswers({});
+      setSentinelTriggered(false);
       if (currentUser) {
         const existingData = await getUserTriageMetadata(currentUser.email || currentUser.uid);
         if (existingData?.answers) {
@@ -85,40 +90,72 @@ export default function InitialEvaluationTest() {
     setAnswers(updated);
 
     // Revisar si dispara bandera centinela
-    if (isTrigger || (questionId === "eje4_q3" && optionId === "C")) {
+    if (
+      isTrigger ||
+      (questionId.includes("centinela") && optionId === "C") ||
+      (questionId === "eje3_filtro_centinela" && optionId === "C") ||
+      (questionId === "eje4_q3" && optionId === "C")
+    ) {
       setSentinelTriggered(true);
-    } else if (questionId === "eje4_q3" && optionId !== "C") {
+    } else if (
+      (questionId.includes("centinela") || questionId === "eje3_filtro_centinela" || questionId === "eje4_q3") &&
+      optionId !== "C"
+    ) {
       setSentinelTriggered(false);
     }
   };
 
-  // Agrupación de preguntas por Eje
+  // Agrupación de preguntas por Eje (3 Ejes Clínicos)
   const axes = [
-    { id: 1, title: "Eje 1: Estilo de Comunicación", icon: "forum", description: "Configura la manera en que prefieres que la IA y la voz se adapten a ti." },
-    { id: 2, title: "Eje 2: Síntomas y Desencadenantes", icon: "vital_signs", description: "Identifica tus motivos de consulta y el impacto emocional actual." },
-    { id: 3, title: "Eje 3: Recursos y Afrontamiento", icon: "shield", description: "Tus fortalezas personales, redes de apoyo y herramientas predilectas." },
-    { id: 4, title: "Eje 4: Indicadores y Seguridad", icon: "security", description: "Filtro centinela preventivo, motivación y antecedentes terapéuticos." }
+    { id: 1, title: "Eje 1: Síntomas y Estado Emocional", icon: "vital_signs", description: "Identifica tus motivos de consulta, estado anímico y síntomas principales." },
+    { id: 2, title: "Eje 2: Recursos Personales y Afrontamiento", icon: "shield", description: "Tus fortalezas personales, redes de apoyo y herramientas predilectas." },
+    { id: 3, title: "Eje 3: Indicadores Pronósticos y Banderas Rojas", icon: "security", description: "Filtro centinela preventivo, motivación y antecedentes terapéuticos." }
   ];
 
   const currentAxisQuestions = questions.filter((q) => q.axisId === activeAxis);
 
   // Cálculo de progreso global
   const totalQuestions = questions.length;
-  const answeredCount = Object.keys(answers).length;
+  const answeredCount = questions.filter((q) => answers[q.id] !== undefined && answers[q.id] !== null && answers[q.id] !== '').length;
+  const isAllAnswered = totalQuestions > 0 && answeredCount === totalQuestions;
   const progressPercent = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
+
+  // Advertir antes de cerrar o recargar la pestaña si no ha terminado
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (!isAllAnswered) {
+        e.preventDefault();
+        e.returnValue = "Debes responder todas las preguntas antes de salir del test.";
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isAllAnswered]);
 
   // Finalizar y enviar a Triage
   const handleCompleteTest = async () => {
+    if (!isAllAnswered) {
+      const pendingQuestions = questions.filter((q) => !answers[q.id]);
+      const firstPending = pendingQuestions[0];
+      if (firstPending && firstPending.axisId !== activeAxis) {
+        setActiveAxis(firstPending.axisId);
+      }
+      alert(`Aún te faltan preguntas por responder (${answeredCount} de ${totalQuestions}). Por favor, responde todas las preguntas para continuar.`);
+      return;
+    }
+
     setIsSaving(true);
     try {
       const triageResult = calculateTriageAnalysis(answers, questions);
       const userId = user ? user.email || user.uid : "guest_user";
       await saveUserTriageMetadata(userId, triageResult);
-      navigate("/triage");
+      navigate("/chat");
     } catch (error) {
       console.error("Error al procesar evaluación:", error);
-      alert("Hubo un detalle al guardar la evaluación. Redirigiendo al Triage...");
-      navigate("/triage");
+      alert("Hubo un detalle al guardar la evaluación. Redirigiendo al Chat...");
+      navigate("/chat");
     } finally {
       setIsSaving(false);
     }
@@ -232,119 +269,6 @@ export default function InitialEvaluationTest() {
       {/* Fondo Aurora característico de Mindly */}
       <div className="aurora-bg"></div>
 
-      {/* ── Sidebar Overlay ── */}
-      <div
-        className={`fixed inset-0 bg-black/25 backdrop-blur-sm z-[70] transition-opacity duration-300 ${
-          isSidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-        onClick={() => setIsSidebarOpen(false)}
-        aria-hidden="true"
-      />
-
-      {/* ── Sidebar Drawer ── */}
-      <aside
-        className={`fixed top-0 left-0 h-full w-72 bg-white/95 backdrop-blur-md z-[80] shadow-2xl border-r border-[#E8A5CD]/20 flex flex-col transition-transform duration-300 ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="p-6 flex items-center justify-between border-b border-[#E8A5CD]/20">
-          <div className="flex items-center space-x-3">
-            <span className="material-symbols-outlined text-3xl text-[#E8A5CD]">psychology</span>
-            <span className="font-bold text-xl tracking-tight text-[#2D2A2E]">Mindly</span>
-          </div>
-          <button
-            onClick={() => setIsSidebarOpen(false)}
-            className="p-1 rounded-full hover:bg-gray-100 text-gray-500"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
-          {SIDEBAR_LINKS.map((link) => (
-            <button
-              key={link.route}
-              onClick={() => {
-                setIsSidebarOpen(false);
-                navigate(link.route);
-              }}
-              className={`w-full flex items-center space-x-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all ${
-                link.active
-                  ? "bg-[#E8A5CD]/20 text-[#9C3877] shadow-sm font-bold"
-                  : "text-gray-600 hover:bg-[#7BE0E8]/10 hover:text-gray-900"
-              }`}
-            >
-              <span className="material-symbols-outlined text-xl">{link.icon}</span>
-              <span>{link.label}</span>
-            </button>
-          ))}
-        </nav>
-
-        <div className="p-4 border-t border-[#E8A5CD]/20 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-[#E8A5CD]/30 text-[#9C3877] font-bold flex items-center justify-center text-sm shadow-inner">
-              {user?.email ? user.email.slice(0, 2).toUpperCase() : "MD"}
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="text-xs font-bold text-gray-800 truncate max-w-[120px]">
-                {user?.displayName || (user?.email ? user.email.split("@")[0] : "Paciente")}
-              </span>
-              <span className="text-[10px] text-gray-400">En línea</span>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            title="Cerrar sesión"
-            className="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
-          >
-            <span className="material-symbols-outlined text-xl">logout</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* ── Header Principal ── */}
-      <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-md border-b border-[#E8A5CD]/20 px-4 md:px-8 py-4 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="p-2 rounded-xl bg-white shadow-sm border border-gray-100 hover:bg-gray-50 text-gray-700 focus:outline-none"
-            aria-label="Abrir menú lateral"
-          >
-            <span className="material-symbols-outlined block">menu</span>
-          </button>
-          <div>
-            <h1 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2">
-              <span>Evaluación Inicial</span>
-              <span className="hidden md:inline-block text-xs bg-[#7BE0E8]/30 text-teal-800 font-semibold px-2.5 py-0.5 rounded-full">
-                Triage & Personalidad
-              </span>
-            </h1>
-            <p className="text-xs text-gray-500 hidden sm:block">
-              Mapeo interactivo para adaptar A.I.S.E. a tu estilo personal
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-2 md:space-x-3">
-          <button
-            onClick={() => setIsManageModalOpen(true)}
-            className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white border border-[#E8A5CD]/40 text-[#9C3877] hover:bg-[#E8A5CD]/10 shadow-sm transition-all"
-            title="Añadir, editar o eliminar preguntas"
-          >
-            <span className="material-symbols-outlined text-base">tune</span>
-            <span className="hidden sm:inline">Gestionar Preguntas</span>
-          </button>
-
-          <button
-            onClick={() => navigate("/triage")}
-            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#7BE0E8]/30 text-teal-900 hover:bg-[#7BE0E8]/50 shadow-sm transition-all"
-          >
-            <span className="material-symbols-outlined text-base">clinical_notes</span>
-            <span>Ver Triage</span>
-          </button>
-        </div>
-      </header>
-
       {/* ── Contenido Principal ── */}
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-8 z-10 flex flex-col gap-6">
         
@@ -408,8 +332,8 @@ export default function InitialEvaluationTest() {
             />
           </div>
 
-          {/* Selector de Ejes Tabs */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-5">
+          {/* Selector de Ejes Tabs (3 Ejes) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-5">
             {axes.map((axis) => {
               const axisQs = questions.filter((q) => q.axisId === axis.id);
               const axisAnswered = axisQs.filter((q) => answers[q.id]);
@@ -499,7 +423,7 @@ export default function InitialEvaluationTest() {
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-1 flex-shrink-0">
+                    {/* <div className="flex items-center space-x-1 flex-shrink-0">
                       <button
                         onClick={() => handleOpenEditQuestion(q)}
                         className="p-1.5 text-gray-400 hover:text-[#9C3877] hover:bg-gray-100 rounded-lg transition-colors"
@@ -514,7 +438,7 @@ export default function InitialEvaluationTest() {
                       >
                         <span className="material-symbols-outlined text-base">delete</span>
                       </button>
-                    </div>
+                    </div> */}
                   </div>
 
                   {/* Opciones de Respuesta */}
@@ -576,18 +500,18 @@ export default function InitialEvaluationTest() {
           </button>
 
           <div className="flex items-center space-x-2">
-            <button
+            {/* <button
               onClick={handleOpenAddQuestion}
               className="hidden sm:flex items-center space-x-1 px-3 py-2 rounded-xl text-xs font-semibold bg-white text-gray-600 hover:text-gray-900 border border-gray-200 shadow-sm"
             >
               <span className="material-symbols-outlined text-sm">add</span>
               <span>Añadir Pregunta</span>
-            </button>
+            </button> */}
 
-            {activeAxis < 4 ? (
+            {activeAxis < 3 ? (
               <button
                 type="button"
-                onClick={() => setActiveAxis((prev) => Math.min(4, prev + 1))}
+                onClick={() => setActiveAxis((prev) => Math.min(3, prev + 1))}
                 className="flex items-center space-x-1.5 px-5 py-2.5 rounded-xl text-xs font-bold bg-[#E8A5CD] text-white hover:opacity-90 shadow-md transition-all active:scale-95"
               >
                 <span>Siguiente Eje</span>
@@ -596,19 +520,32 @@ export default function InitialEvaluationTest() {
             ) : (
               <button
                 type="button"
-                disabled={isSaving}
+                disabled={isSaving || !isAllAnswered}
                 onClick={handleCompleteTest}
-                className="flex items-center space-x-2 px-6 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-[#E8A5CD] to-[#7BE0E8] text-[#2D2A2E] hover:opacity-95 shadow-md transition-all active:scale-95 disabled:opacity-50"
+                title={!isAllAnswered ? "Debes responder todas las preguntas para finalizar" : "Finalizar y Ver Perfil"}
+                className={`flex items-center space-x-2 px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 ${
+                  isAllAnswered && !isSaving
+                    ? "bg-gradient-to-r from-[#E8A5CD] to-[#7BE0E8] text-[#2D2A2E] hover:opacity-95"
+                    : "bg-gray-200 text-gray-400 cursor-not-allowed opacity-70"
+                }`}
               >
-                <span className="material-symbols-outlined text-base">verified</span>
-                <span>{isSaving ? "Guardando Triage..." : "Finalizar y Ver Perfil"}</span>
+                <span className="material-symbols-outlined text-base">
+                  {isAllAnswered ? "verified" : "lock"}
+                </span>
+                <span>
+                  {isSaving
+                    ? "Guardando Triage..."
+                    : !isAllAnswered
+                    ? `Faltan preguntas (${answeredCount}/${totalQuestions})`
+                    : "Finalizar y Ver Perfil"}
+                </span>
               </button>
             )}
           </div>
         </div>
       </main>
 
-      {/* ── Modal para Añadir / Editar Preguntas ── */}
+      {/* ── Modal para Añadir / Editar Preguntas ──
       {isManageModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl border border-[#E8A5CD]/30 my-8">
@@ -641,10 +578,9 @@ export default function InitialEvaluationTest() {
                   }
                   className="w-full text-xs font-semibold p-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-[#E8A5CD] outline-none"
                 >
-                  <option value={1}>Eje 1: Estilo de Comunicación Deseado</option>
-                  <option value={2}>Eje 2: Presentación de Síntomas y Desencadenantes</option>
-                  <option value={3}>Eje 3: Recursos Personales y Afrontamiento</option>
-                  <option value={4}>Eje 4: Indicadores Pronósticos y Banderas Rojas</option>
+                  <option value={1}>Eje 1: Síntomas y Estado Emocional</option>
+                  <option value={2}>Eje 2: Recursos Personales y Afrontamiento</option>
+                  <option value={3}>Eje 3: Indicadores Pronósticos y Banderas Rojas</option>
                 </select>
               </div>
 
@@ -733,7 +669,7 @@ export default function InitialEvaluationTest() {
             </form>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 }

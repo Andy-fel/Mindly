@@ -144,7 +144,6 @@ const PAGE_SIZE = 3;
 // ─── Sidebar links ────────────────────────────────────────────────────────────
 const SIDEBAR_LINKS = [
     { icon: "bubble_chart", label: "Chat", mobileLabel: "Chat", route: "/chat" },
-    { icon: "assignment", label: "Evaluación Inicial", mobileLabel: "Test", route: "/test" },
     { icon: "psychology", label: "Perfil Clínico (Triage)", mobileLabel: "Triage", route: "/triage" },
     { icon: "emergency", label: "Panel de Emergencia", mobileLabel: "Emergencia", route: "/sos" },
     { icon: "history", label: "Historial de Sesiones", mobileLabel: "Historial", route: "/historial", active: true },

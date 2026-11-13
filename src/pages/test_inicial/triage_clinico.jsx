@@ -11,7 +11,6 @@ import "./test_style.css";
 
 const SIDEBAR_LINKS = [
   { icon: "bubble_chart", label: "Chat con A.I.S.E", mobileLabel: "Chat", route: "/chat" },
-  { icon: "assignment", label: "Evaluación Inicial", mobileLabel: "Test", route: "/test" },
   { icon: "psychology", label: "Perfil Clínico (Triage)", mobileLabel: "Triage", route: "/triage", active: true },
   { icon: "emergency", label: "Panel de Emergencia", mobileLabel: "Emergencia", route: "/sos" },
   { icon: "history", label: "Historial de Sesiones", mobileLabel: "Historial", route: "/historial" },
@@ -427,6 +426,24 @@ export default function ClinicalTriageProfile() {
 
             <div className="bg-white/70 p-4 rounded-2xl border border-gray-100">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                Estado de Ánimo
+              </span>
+              <p className="text-sm font-bold text-gray-800">
+                {personalityTraits?.generalMood || "Estable y tranquilo"}
+              </p>
+            </div>
+
+            <div className="bg-white/70 p-4 rounded-2xl border border-gray-100">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                Satisfacción con la Vida
+              </span>
+              <p className="text-sm font-bold text-gray-800">
+                {personalityTraits?.lifeSatisfaction || "5-7 (Satisfacción media)"}
+              </p>
+            </div>
+
+            <div className="bg-white/70 p-4 rounded-2xl border border-gray-100">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
                 Afrontamiento Habitual
               </span>
               <p className="text-sm font-bold text-gray-800">
@@ -440,6 +457,60 @@ export default function ClinicalTriageProfile() {
               </span>
               <p className="text-sm font-bold text-gray-800">
                 {personalityTraits?.preferredTools || "Respiración guiada"}
+              </p>
+            </div>
+
+            <div className="bg-white/70 p-4 rounded-2xl border border-gray-100">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                Carga Diaria
+              </span>
+              <p className="text-sm font-bold text-gray-800">
+                {personalityTraits?.dailyDifficulty || "Manejable"}
+              </p>
+            </div>
+
+            <div className="bg-white/70 p-4 rounded-2xl border border-gray-100">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                Interés y Placer
+              </span>
+              <p className="text-sm font-bold text-gray-800">
+                {personalityTraits?.lossOfInterest || "Mantiene intereses"}
+              </p>
+            </div>
+
+            <div className="bg-white/70 p-4 rounded-2xl border border-gray-100">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                Calidad del Sueño
+              </span>
+              <p className="text-sm font-bold text-gray-800">
+                {personalityTraits?.sleepQuality || "Sueño reparador"}
+              </p>
+            </div>
+
+            <div className="bg-white/70 p-4 rounded-2xl border border-gray-100">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                Tensión Somática
+              </span>
+              <p className="text-sm font-bold text-gray-800">
+                {personalityTraits?.physicalTension || "Sin tensión física constante"}
+              </p>
+            </div>
+
+            <div className="bg-white/70 p-4 rounded-2xl border border-gray-100">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                Autocrítica / Juicio
+              </span>
+              <p className="text-sm font-bold text-gray-800">
+                {personalityTraits?.selfCriticism || "Autocompasivo"}
+              </p>
+            </div>
+
+            <div className="bg-white/70 p-4 rounded-2xl border border-gray-100">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                Vitalidad y Energía
+              </span>
+              <p className="text-sm font-bold text-gray-800">
+                {personalityTraits?.vitalEnergy || "Energía estable"}
               </p>
             </div>
           </div>

@@ -143,7 +143,6 @@ function AddContactModal({ onClose, onAdd }) {
 
 const SIDEBAR_LINKS = [
     { icon: "bubble_chart", label: "Chat", mobileLabel: "Chat", route: "/chat" },
-    { icon: "assignment", label: "Evaluación Inicial", mobileLabel: "Test", route: "/test" },
     { icon: "psychology", label: "Perfil Clínico (Triage)", mobileLabel: "Triage", route: "/triage" },
     { icon: "emergency", label: "Panel de Emergencia", mobileLabel: "Emergencia", route: "/sos" },
     { icon: "history", label: "Historial de Sesiones", mobileLabel: "Historial", route: "/historial" },
@@ -398,7 +397,7 @@ export default function ProfileSettings() {
                 </section>
 
                 {/* 2. A.I.S.E Intelligence Settings */}
-                <section className="section-card card-shadow">
+                {/* <section className="section-card card-shadow">
                     <header style={{ marginBottom: 32 }}>
                         <h2 style={{ fontSize: 32, fontWeight: 600, color: "var(--color-on-surface)", marginBottom: 4, lineHeight: 1.3 }}>Configuración de A.I.S.E</h2>
                         <p style={{ color: "var(--color-neutral-text)", fontSize: 14 }}>Personaliza la presencia vocal y la capacidad de respuesta de tu compañero IA.</p>
@@ -433,7 +432,7 @@ export default function ProfileSettings() {
                             </div>
                         </div>
                     </div>
-                </section>
+                </section> */}
 
                 {/* 3. Trusted Contacts */}
                 <section className="section-card card-shadow">

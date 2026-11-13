@@ -12,6 +12,8 @@ import MemoryLane from "./pages/historial/memory_Line.jsx";
 import ProfileSettings from "./pages/configuracion/settings.jsx";
 import InitialEvaluationTest from "./pages/test_inicial/test.jsx";
 import ClinicalTriageProfile from "./pages/test_inicial/triage_clinico.jsx";
+import Welcome from "./pages/login/welcome.jsx";
+
 
 const queryClient = new QueryClient();
 
@@ -28,11 +30,12 @@ const App = () => (
           <Route path="/configuracion" element={<ProfileSettings />} />
           <Route path="/sos" element={<EmergencyMode />} />
           <Route path="/test" element={<InitialEvaluationTest />} />
-          <Route path="/test-inicial" element={<InitialEvaluationTest />} />
+          <Route path="/triaje" element={<InitialEvaluationTest />} />
           <Route path="/evaluacion" element={<InitialEvaluationTest />} />
           <Route path="/triage" element={<ClinicalTriageProfile />} />
           <Route path="/perfil-clinico" element={<ClinicalTriageProfile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/welcome" element={<Welcome />} />     
           <Route path="*" element={<Index />} />
         </Routes>
       </BrowserRouter>

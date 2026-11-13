@@ -1,195 +1,16 @@
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
+import { DEFAULT_TEST_QUESTIONS } from './TestService';
+
+// Re-exportar elementos del test para mantener compatibilidad si se requiere
+export * from './TestService';
 
 export const TRIAGE_COLLECTION = 'users_metadata';
-export const STORAGE_KEY_QUESTIONS = 'mindly_triage_custom_questions';
 export const STORAGE_KEY_LOCAL_TRIAGE = 'mindly_user_triage_cache';
 
-// Preguntas base de los 4 ejes clínicos
-export const DEFAULT_TRIAGE_QUESTIONS = [
-  // Eje 1: Estilo de Comunicación Deseado
-  {
-    id: 'eje1_q1',
-    axisId: 1,
-    axisTitle: 'Eje 1: Estilo de Comunicación Deseado',
-    axisDescription: 'Configura cómo la IA debe interactuar contigo para que te sientas comprendido/a.',
-    question: '¿Cómo prefieres que la IA se dirija a ti durante las sesiones?',
-    category: 'communicationStyle',
-    options: [
-      { id: 'A', text: 'Directo y práctico (enfocado en soluciones rápidas).', value: 'Directo y práctico', tag: 'Directo' },
-      { id: 'B', text: 'Empático y reflexivo (preguntas abiertas para desahogarme).', value: 'Empático y reflexivo', tag: 'Empático' },
-      { id: 'C', text: 'Educativo (explicándome qué le pasa a mi cerebro/mente).', value: 'Educativo y explicativo', tag: 'Educativo' }
-    ]
-  },
-  {
-    id: 'eje1_q2',
-    axisId: 1,
-    axisTitle: 'Eje 1: Estilo de Comunicación Deseado',
-    axisDescription: 'Personalización de la síntesis de voz y presencia sonora.',
-    question: '¿Qué tono de voz prefieres en la interacción por voz (A.I.S.E)?',
-    category: 'voiceTone',
-    options: [
-      { id: 'A', text: 'Cálido y pausado.', value: 'Cálido y pausado', tag: 'Pausado' },
-      { id: 'B', text: 'Neutral y profesional.', value: 'Neutral y profesional', tag: 'Neutral' },
-      { id: 'C', text: 'Dinámico y motivador.', value: 'Dinámico y motivador', tag: 'Motivador' }
-    ]
-  },
+// ─── Algoritmo de Triage Clínico, Matriz Pronóstica y RAG ───────────────────
 
-  // Eje 2: Presentación de Síntomas y Desencadenantes
-  {
-    id: 'eje2_q1',
-    axisId: 2,
-    axisTitle: 'Eje 2: Presentación de Síntomas y Desencadenantes',
-    axisDescription: 'Identificación de motivos de consulta y factores de tensión inmediata.',
-    question: '¿Cuál es el motivo principal por el que buscas apoyo hoy?',
-    category: 'primaryReason',
-    options: [
-      { id: 'A', text: 'Estrés académico / laboral.', value: 'Estrés académico / laboral', tag: 'Estrés' },
-      { id: 'B', text: 'Ansiedad o ataques de pánico frecuentes.', value: 'Ansiedad o ataques de pánico frecuentes', tag: 'Ansiedad' },
-      { id: 'C', text: 'Estado de ánimo bajo o tristeza prolongada.', value: 'Estado de ánimo bajo o tristeza prolongada', tag: 'Ánimo Bajo' },
-      { id: 'D', text: 'Dificultad para gestionar emociones o relaciones.', value: 'Dificultad para gestionar emociones o relaciones', tag: 'Gestión Emocional' }
-    ]
-  },
-  {
-    id: 'eje2_q2',
-    axisId: 2,
-    axisTitle: 'Eje 2: Presentación de Síntomas y Desencadenantes',
-    axisDescription: 'Medición del impacto funcional de los síntomas en tu rutina diaria.',
-    question: '¿Con qué frecuencia sientes que tus emociones interfieren en tu día a día?',
-    category: 'emotionalInterference',
-    options: [
-      { id: 'A', text: 'Rara vez.', value: 'Rara vez', severity: 1 },
-      { id: 'B', text: 'A veces.', value: 'A veces', severity: 2 },
-      { id: 'C', text: 'Con frecuencia.', value: 'Con frecuencia', severity: 3 },
-      { id: 'D', text: 'Casi todo el tiempo.', value: 'Casi todo el tiempo', severity: 4 }
-    ]
-  },
-
-  // Eje 3: Recursos Personales y Afrontamiento
-  {
-    id: 'eje3_q1',
-    axisId: 3,
-    axisTitle: 'Eje 3: Recursos Personales y Afrontamiento',
-    axisDescription: 'Estrategias actuales de autorregulación y resolución de problemas.',
-    question: 'Cuando te sientes abrumado/a, ¿qué sueles hacer habitualmente?',
-    category: 'copingMechanism',
-    options: [
-      { id: 'A', text: 'Aislarme de los demás.', value: 'Aislarme de los demás', adaptive: false, label: 'Aislamiento social' },
-      { id: 'B', text: 'Busco distracción (pantallas, juegos).', value: 'Busco distracción (pantallas, juegos)', adaptive: false, label: 'Distracción evasiva' },
-      { id: 'C', text: 'Busco a un amigo/familiar.', value: 'Busco a un amigo/familiar', adaptive: true, label: 'Búsqueda de apoyo social' },
-      { id: 'D', text: 'Intento resolver el problema de inmediato.', value: 'Intento resolver el problema de inmediato', adaptive: true, label: 'Enfoque proactivo' }
-    ]
-  },
-  {
-    id: 'eje3_q2',
-    axisId: 3,
-    axisTitle: 'Eje 3: Recursos Personales y Afrontamiento',
-    axisDescription: 'Disponibilidad de factores protectores externos.',
-    question: '¿Cuenta con una red de apoyo cercana (familiares, amigos) con quien hablar de lo que sientes?',
-    category: 'supportNetwork',
-    options: [
-      { id: 'A', text: 'Sí, fuerte.', value: 'Sí, fuerte', protection: 'Fuerte' },
-      { id: 'B', text: 'Limitada.', value: 'Limitada', protection: 'Moderada' },
-      { id: 'C', text: 'No cuento con nadie.', value: 'No cuento con nadie', protection: 'Vulnerable' }
-    ]
-  },
-  {
-    id: 'eje3_q3',
-    axisId: 3,
-    axisTitle: 'Eje 3: Recursos Personales y Afrontamiento',
-    axisDescription: 'Preferencia de intervenciones psicológicas y técnicas de regulación.',
-    question: '¿Qué tipo de ejercicios o herramientas te resultan más útiles?',
-    category: 'preferredTools',
-    options: [
-      { id: 'A', text: 'Respiración y meditación guiada.', value: 'Respiración y meditación guiada', technique: 'Mindfulness y Somático' },
-      { id: 'B', text: 'Reestructurar o escribir mis pensamientos.', value: 'Reestructurar o escribir mis pensamientos', technique: 'CBT y Reestructuración Cognitiva' },
-      { id: 'C', text: 'Tareas o metas pequeñas para el día a día.', value: 'Tareas o metas pequeñas para el día a día', technique: 'Activación Conductual' }
-    ]
-  },
-
-  // Eje 4: Indicadores Pronósticos y Banderas Rojas (Filtro de Seguridad)
-  {
-    id: 'eje4_q1',
-    axisId: 4,
-    axisTitle: 'Eje 4: Indicadores Pronósticos y Banderas Rojas (Filtro de Seguridad)',
-    axisDescription: 'Historial clínico y contacto previo con psicoterapia formal.',
-    question: '¿Has asistido o estás asistiendo actualmente a terapia psicológica humana?',
-    category: 'priorTherapy',
-    options: [
-      { id: 'A', text: 'Sí, actualmente.', value: 'Sí, actualmente', status: 'En tratamiento activo' },
-      { id: 'B', text: 'En el pasado.', value: 'En el pasado', status: 'Experiencia previa' },
-      { id: 'C', text: 'Nunca.', value: 'Nunca', status: 'Primer contacto terapéutico' }
-    ]
-  },
-  {
-    id: 'eje4_q2',
-    axisId: 4,
-    axisTitle: 'Eje 4: Indicadores Pronósticos y Banderas Rojas (Filtro de Seguridad)',
-    axisDescription: 'Nivel de motivación para la tarea intersesión y compromiso reflexivo.',
-    question: '¿Qué tan dispuesto/a te sientes a realizar pequeños ejercicios prácticos entre sesiones?',
-    category: 'motivation',
-    options: [
-      { id: 'A', text: 'Muy dispuesto/a.', value: 'Muy dispuesto/a', score: 3 },
-      { id: 'B', text: 'Moderadamente.', value: 'Moderadamente', score: 2 },
-      { id: 'C', text: 'Prefiero solo hablar.', value: 'Prefiero solo hablar', score: 1 }
-    ]
-  },
-  {
-    id: 'eje4_q3',
-    axisId: 4,
-    axisTitle: 'Eje 4: Indicadores Pronósticos y Banderas Rojas (Filtro de Seguridad)',
-    axisDescription: 'Filtro Centinela de seguridad para prevención oportuna de autolesión o ideación de riesgo.',
-    question: '(Filtro Centinela) En las últimas dos semanas, ¿has tenido pensamientos recurrente de hacerte daño o que la vida no vale la pena?',
-    category: 'sentinelRisk',
-    isSentinel: true,
-    options: [
-      { id: 'A', text: 'No, en absoluto.', value: 'No, en absoluto', risk: 'Bajo', isTrigger: false },
-      { id: 'B', text: 'Ocasionalmente, pero sin intención.', value: 'Ocasionalmente, pero sin intención', risk: 'Moderado', isTrigger: false },
-      { id: 'C', text: 'Sí, con frecuencia. (Dispara alerta preventiva inmediata).', value: 'Sí, con frecuencia', risk: 'Alto', isTrigger: true }
-    ]
-  }
-];
-
-// ─── Gestión de Preguntas Dinámicas (CRUD) ───────────────────────────────────
-
-export const getStoredQuestions = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_QUESTIONS);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
-  } catch (e) {
-    console.error('Error al cargar preguntas guardadas:', e);
-  }
-  return DEFAULT_TRIAGE_QUESTIONS;
-};
-
-export const saveStoredQuestions = (questions) => {
-  try {
-    localStorage.setItem(STORAGE_KEY_QUESTIONS, JSON.stringify(questions));
-    return true;
-  } catch (e) {
-    console.error('Error al guardar preguntas:', e);
-    return false;
-  }
-};
-
-export const resetStoredQuestions = () => {
-  try {
-    localStorage.removeItem(STORAGE_KEY_QUESTIONS);
-    return DEFAULT_TRIAGE_QUESTIONS;
-  } catch (e) {
-    console.error('Error al reiniciar preguntas:', e);
-    return DEFAULT_TRIAGE_QUESTIONS;
-  }
-};
-
-// ─── Algoritmo de Triage Clínico y Análisis RAG ──────────────────────────────
-
-export const calculateTriageAnalysis = (answers = {}, questions = DEFAULT_TRIAGE_QUESTIONS) => {
+export const calculateTriageAnalysis = (answers = {}, questions = DEFAULT_TEST_QUESTIONS) => {
   // Mapear respuestas con las preguntas correspondientes
   const questionMap = {};
   questions.forEach(q => {
@@ -204,66 +25,103 @@ export const calculateTriageAnalysis = (answers = {}, questions = DEFAULT_TRIAGE
     return q.options.find(o => o.id === ansId || o.value === ansId) || null;
   };
 
-  // Eje 1: Estilo de comunicación y tono
-  const commOpt = getAnswerObj('eje1_q1');
-  const toneOpt = getAnswerObj('eje1_q2');
+  // Eje 1: Síntomas, desencadenantes y estado emocional
+  const bringHereOpt = getAnswerObj('eje1_trae_aqui');
+  const reasonOpt = getAnswerObj('eje1_motivo_principal') || getAnswerObj('eje2_q1');
+  const moodOpt = getAnswerObj('eje1_estado_animo');
+  const satisfactionOpt = getAnswerObj('eje1_satisfaccion_vida');
+  const dailyDiffOpt = getAnswerObj('eje1_dificultad_diaria');
+  const interestOpt = getAnswerObj('eje1_interes_cosas');
+  const interfOpt = getAnswerObj('eje1_interferencia_emocional') || getAnswerObj('eje2_q2');
 
-  const communicationStyle = commOpt?.value || 'Empático y reflexivo';
-  const voiceTone = toneOpt?.value || 'Cálido y pausado';
+  // Nuevas 5 variables clínicas
+  const sleepOpt = getAnswerObj('eje1_calidad_sueno');
+  const somatizationOpt = getAnswerObj('eje1_tension_fisica');
+  const selfCriticismOpt = getAnswerObj('eje1_autocritica');
+  const focusOpt = getAnswerObj('eje1_concentracion');
+  const energyOpt = getAnswerObj('eje1_energia_vital');
 
-  // Eje 2: Síntomas y desencadenantes
-  const reasonOpt = getAnswerObj('eje2_q1');
-  const interfOpt = getAnswerObj('eje2_q2');
+  const primaryReason = bringHereOpt?.value || reasonOpt?.value || 'Gestión emocional y estrés';
+  const generalMood = moodOpt?.value || 'Con altibajos emocionales';
+  const lifeSatisfaction = satisfactionOpt?.value || 'Moderadamente satisfecho/a';
+  const dailyDifficulty = dailyDiffOpt?.value || interfOpt?.value || 'Dificultad leve a moderada';
+  const lossOfInterest = interestOpt?.value || 'Mantiene intereses habituales';
+  const emotionalInterference = interfOpt?.value || dailyDiffOpt?.value || 'A veces';
 
-  const primaryReason = reasonOpt?.value || 'Gestión emocional y estrés';
-  const emotionalInterference = interfOpt?.value || 'A veces';
-  const interferenceSeverity = interfOpt?.severity || 2;
+  const sleepQuality = sleepOpt?.value || 'Sueño regular';
+  const physicalTension = somatizationOpt?.value || 'Tensión física ocasional';
+  const selfCriticism = selfCriticismOpt?.value || 'Autocrítica moderada';
+  const cognitiveFocus = focusOpt?.value || 'Claridad mental normal';
+  const vitalEnergy = energyOpt?.value || 'Energía moderada';
 
-  // Eje 3: Afrontamiento y redes
-  const copingOpt = getAnswerObj('eje3_q1');
-  const supportOpt = getAnswerObj('eje3_q2');
-  const toolsOpt = getAnswerObj('eje3_q3');
+  // Eje 2: Afrontamiento y redes
+  const copingOpt = getAnswerObj('eje2_afrontamiento') || getAnswerObj('eje3_q1');
+  const supportOpt = getAnswerObj('eje2_red_apoyo') || getAnswerObj('eje3_q2');
+  const toolsOpt = getAnswerObj('eje2_herramientas') || getAnswerObj('eje3_q3');
 
   const copingMechanism = copingOpt?.value || 'Búsqueda de distracción';
   const supportNetwork = supportOpt?.value || 'Limitada';
   const preferredTools = toolsOpt?.value || 'Respiración y meditación guiada';
 
-  // Eje 4: Pronóstico y Filtro Centinela
-  const therapyOpt = getAnswerObj('eje4_q1');
-  const motivOpt = getAnswerObj('eje4_q2');
-  const sentinelOpt = getAnswerObj('eje4_q3');
+  // Eje 3: Pronóstico y Filtro Centinela
+  const therapyHistoryOpt = getAnswerObj('eje3_psicologo_previo') || getAnswerObj('eje4_psicologo_previo');
+  const therapyOpt = getAnswerObj('eje3_terapia_actual') || getAnswerObj('eje4_q1');
+  const motivOpt = getAnswerObj('eje3_motivacion') || getAnswerObj('eje4_q2');
+  const sentinelOpt = getAnswerObj('eje3_filtro_centinela') || getAnswerObj('eje4_q3');
 
-  const priorTherapy = therapyOpt?.value || 'Nunca';
+  const priorTherapy = therapyHistoryOpt?.value || therapyOpt?.value || 'Sin experiencia previa en terapia';
   const motivation = motivOpt?.value || 'Moderadamente';
   const sentinelAnswer = sentinelOpt?.value || 'No, en absoluto';
 
-  // Detección de Banderas Rojas y Riesgo
+  // Estilo de comunicación inferido adaptativamente de la psicometría clínica
+  let communicationStyle = 'Empático y reflexivo';
+  if (selfCriticismOpt?.trait === 'Autocrítico' || selfCriticismOpt?.trait === 'Severo') {
+    communicationStyle = 'Empático, validador y autocompasivo (priorizar reducción de culpa y contención afectuosa)';
+  } else if (copingOpt?.adaptive && motivOpt?.score === 3) {
+    communicationStyle = 'Directo y práctico (orientado a soluciones paso a paso y herramientas conductuales)';
+  } else if (preferredTools.includes('Reestructurar')) {
+    communicationStyle = 'Educativo y cognitivo (explicando procesos mentales y reestructuración de pensamientos)';
+  }
+
+  const voiceTone = (generalMood.includes('Tenso') || somatizationOpt?.severity >= 3)
+    ? 'Cálido y pausado (apoyo en regulación del sistema nervioso)'
+    : 'Cálido y empático';
+
+  // Detección de Banderas Rojas y Severidad
   const isSentinelTriggered = sentinelOpt?.isTrigger || sentinelOpt?.id === 'C' || (typeof sentinelAnswer === 'string' && sentinelAnswer.toLowerCase().includes('con frecuencia'));
+
+  const interferenceSeverity = Math.max(
+    interfOpt?.severity || 1,
+    dailyDiffOpt?.severity || 1,
+    somatizationOpt?.severity || 1
+  );
+  const hasAnhedonia = interestOpt?.hasAnhedonia || false;
+  const isLifeCritical = satisfactionOpt?.level === 0;
 
   let riskLevel = 'Bajo';
   let riskBadgeColor = 'emerald';
-  let clinicalRiskDescription = 'Paciente con bajo nivel de riesgo inmediato. Foco en psicoeducación y regulación emocional.';
+  let clinicalRiskDescription = 'Paciente con bajo nivel de riesgo inmediato. Foco en psicoeducación, escucha activa y mindfulness preventivo.';
 
   if (isSentinelTriggered) {
     riskLevel = 'Alto Riesgo (Alerta Centinela)';
     riskBadgeColor = 'rose';
     clinicalRiskDescription = 'Bandera Centinela Activa: El paciente reporta pensamientos recurrentes de daño. Se requiere protocolo de seguridad activo y priorización de líneas de contención.';
-  } else if (interferenceSeverity >= 3 || supportOpt?.protection === 'Vulnerable') {
+  } else if (interferenceSeverity >= 3 || hasAnhedonia || isLifeCritical || supportOpt?.protection === 'Vulnerable' || sleepOpt?.score === 4) {
     riskLevel = 'Moderado';
     riskBadgeColor = 'amber';
-    clinicalRiskDescription = 'Riesgo Moderado: Alta interferencia en la vida diaria o red de apoyo limitada. Se recomienda monitoreo cercano y ejercicios de afrontamiento proactivos.';
+    clinicalRiskDescription = 'Riesgo Moderado: Se identifican síntomas de tensión física/somatización, alteración del sueño, sobrecarga diaria o red de apoyo limitada. Se aconseja contención cercana y seguimiento.';
   }
 
   // Matriz de Indicadores Pronósticos (Introspección, Motivación, Red de Apoyo)
   // 1. Introspección
   let introspectionScore = 'Media';
-  let introspectionDesc = 'Capacidad reflexiva funcional; reconoce motivos emocionales principales.';
-  if (communicationStyle.includes('Educativo') || copingOpt?.adaptive || preferredTools.includes('Reestructurar')) {
+  let introspectionDesc = 'Capacidad reflexiva funcional; reconoce motivos emocionales y patrones somáticos.';
+  if (copingOpt?.adaptive || preferredTools.includes('Reestructurar') || selfCriticismOpt?.trait === 'Compasivo') {
     introspectionScore = 'Alta';
-    introspectionDesc = 'Elevada apertura al insight, cuestionamiento cognitivo y análisis de estados internos.';
+    introspectionDesc = 'Elevada apertura al insight, análisis de su estado anímico y curiosidad reflexiva.';
   } else if (copingOpt?.value?.includes('Aislarme') && interferenceSeverity >= 4) {
     introspectionScore = 'Baja a Moderada';
-    introspectionDesc = 'Tiende a la evitación cuando se siente sobrecargado/a; requiere guía paso a paso.';
+    introspectionDesc = 'Tiende al aislamiento y fatiga mental ante la sobrecarga; requiere guía guiada paso a paso.';
   }
 
   // 2. Motivación
@@ -288,23 +146,22 @@ export const calculateTriageAnalysis = (answers = {}, questions = DEFAULT_TRIAGE
   // Generación del Prompt de RAG para inyectar en Gemini / AISE
   const aiSystemPromptExtension = [
     `=== EXPEDIENTE CLÍNICO TRIAGE & ADAPTACIÓN PSICOLÓGICA (users_metadata) ===`,
-    `[Estilo de Comunicación Requerido]: ${communicationStyle}. ${
-      communicationStyle.includes('Directo')
-        ? 'Sé pragmático, conciso y ofrece soluciones paso a paso sin rodeos.'
-        : communicationStyle.includes('Educativo')
-        ? 'Explica brevemente la neurobiología o la psicología detrás de sus síntomas para darle claridad.'
-        : 'Sé profundamente cálido, valida sus sentimientos con preguntas abiertas y bríndale espacio para desahogarse.'
-    }`,
-    `[Tono de Voz AISE]: ${voiceTone}.`,
-    `[Motivo Principal de Apoyo]: ${primaryReason} (Interferencia emocional: ${emotionalInterference}).`,
+    `[Estilo de Comunicación Adaptativo]: ${communicationStyle}. Sé cálido, valida sus sentimientos sin juzgar y ofrece micro-pasos comprensivos.`,
+    `[Tono de Voz AISE Sugerido]: ${voiceTone}.`,
+    `[Motivo Principal de Consulta]: ${primaryReason}.`,
+    `[Estado de Ánimo & Satisfacción]: Ánimo ${generalMood} | Satisfacción con la vida: ${lifeSatisfaction}.`,
+    `[Somatización & Sueño]: Tensión corporal: ${physicalTension} | Calidad del sueño: ${sleepQuality}.`,
+    `[Patrón Cognitivo & Energía]: Autocrítica: ${selfCriticism} | Concentración: ${cognitiveFocus} | Energía vital: ${vitalEnergy}.`,
+    `[Dificultad Diaria & Anhedonia]: Dificultad: ${dailyDifficulty} | Pérdida de disfrute: ${lossOfInterest}.`,
     `[Mecanismo de Afrontamiento Habitual]: ${copingMechanism}.`,
     `[Red de Apoyo]: ${supportNetwork} (${supportProtection}).`,
     `[Herramientas Psicológicas Preferidas]: ${preferredTools}. Prioriza este tipo de técnicas en tus recomendaciones.`,
+    `[Experiencia previa con psicólogo]: ${priorTherapy}.`,
     `[Indicadores Pronósticos]: Introspección ${introspectionScore} | Motivación ${motivationScore}.`,
     `[Alerta Centinela / Nivel de Riesgo]: ${riskLevel}. ${
       isSentinelTriggered
         ? 'ATENCIÓN CRÍTICA: Se detectó ideación de riesgo en el test. Mantén un tono sumamente empático, NO minimices el dolor, y ante cualquier indicio de crisis ofrece pausar y acudir al Panel de Emergencias SOS o línea 106.'
-        : 'Mantén el protocolo habitual de contención y mindfulness.'
+        : 'Mantén el protocolo habitual de contención empática y mindfulness.'
     }`,
     `========================================================================`
   ].join('\n');
@@ -326,6 +183,15 @@ export const calculateTriageAnalysis = (answers = {}, questions = DEFAULT_TRIAGE
       communicationStyle,
       voiceTone,
       primaryReason,
+      generalMood,
+      lifeSatisfaction,
+      dailyDifficulty,
+      lossOfInterest,
+      sleepQuality,
+      physicalTension,
+      selfCriticism,
+      cognitiveFocus,
+      vitalEnergy,
       emotionalInterference,
       copingMechanism,
       preferredTools
@@ -363,10 +229,9 @@ export const saveUserTriageMetadata = async (userId, triageData) => {
     console.error(`[TriageService] Error al guardar en Firestore (${TRIAGE_COLLECTION}):`, error);
   }
 
-  // Guardar siempre copia local para fallback veloz y offline
+  // Guardar siempre copia local para fallback veloz y offline (solo por userId)
   try {
     localStorage.setItem(`${STORAGE_KEY_LOCAL_TRIAGE}_${cleanUserId}`, JSON.stringify(triageData));
-    localStorage.setItem(STORAGE_KEY_LOCAL_TRIAGE, JSON.stringify(triageData));
   } catch (e) {
     console.error('Error al guardar en cache local:', e);
   }
@@ -377,8 +242,7 @@ export const saveUserTriageMetadata = async (userId, triageData) => {
 export const getUserTriageMetadata = async (userId) => {
   // Intentar primero desde Firestore
   if (userId) {
-    const cleanUserId = String(userId).trim();
-    try {
+    const cleanUserId = String(userId).trim();    try {
       const docRef = doc(db, TRIAGE_COLLECTION, cleanUserId);
       const snap = await getDoc(docRef);
       if (snap.exists()) {
@@ -399,13 +263,6 @@ export const getUserTriageMetadata = async (userId) => {
     }
   }
 
-  // Fallback genérico en localStorage
-  try {
-    const fallback = localStorage.getItem(STORAGE_KEY_LOCAL_TRIAGE);
-    if (fallback) return JSON.parse(fallback);
-  } catch (e) {
-    console.error(e);
-  }
-
+  // Sin userId no se puede recuperar datos específicos
   return null;
 };

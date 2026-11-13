@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { auth } from "../../firebaseConfig";
-import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, EmailAuthProvider, linkWithCredential } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, EmailAuthProvider, linkWithCredential, fetchSignInMethodsForEmail } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import "../login/login_style.css";
 
@@ -30,9 +30,11 @@ const LoginForm = () => {
     setIsLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Sesión iniciada:", userCredential.user);
-      alert("¡Bienvenido!");
-      navigate('/chat');
+        console.log("Sesión iniciada:", userCredential.user);
+        alert("¡Bienvenido!");  
+        navigate('/chat');
+      
+
     } catch (error) {
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
         alert("Credenciales incorrectas. Revisa tu correo o contraseña.");
@@ -124,7 +126,7 @@ const LoginForm = () => {
     setIsLinkingPassword(false);
     setGoogleUser(null);
     setIsLoading(false);
-    navigate('/chat');
+    navigate('/welcome');
   };
 
   // Cancelar el proceso de vinculación si el usuario no quiere poner contraseña
